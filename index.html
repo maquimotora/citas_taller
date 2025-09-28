@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Reservas Taller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- NUEVOS COLORES CLAROS (Light Gray/White con acentos Azules) --- */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f3f4f6; /* Fondo Gris Muy Claro */
+            min-height: 100vh; 
+            color: #1f2937; /* Texto principal oscuro */
+        } 
+        .card { 
+            background-color: white; /* Fondo blanco */
+            border: 1px solid #e5e7eb; /* Borde suave */
+            border-radius: 0.75rem; 
+            color: #1f2937; /* Texto principal oscuro */
+        } /* Tarjeta Blanca */
+        .btn-primary { 
+            background-color: #3b82f6; /* Azul Primario */
+            transition: all 0.3s ease; 
+        }
+        .btn-primary:hover { 
+            background-color: #2563eb; 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.5); 
+        }
+        .input-style { 
+            background-color: white; /* Fondo de input blanco */
+            color: #1f2937; /* Texto de input oscuro */
+            border: 1px solid #d1d5db; /* Borde gris */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Sombra ligera */
+        }
+        /* Convertir texto a mayúsculas para que sea visible en el input */
+        .input-style { text-transform: uppercase; } 
+        
+        .input-style:focus { 
+            background-color: white; 
+            outline: none; 
+            border-color: #3b82f6; /* Borde Azul en foco */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .text-primary-color { color: #3b82f6; } /* Color de acento Azul */
+        .form-radio { color: #3b82f6; border-color: #d1d5db; }
+
+        /* Ajustes para el texto dentro del contexto de la tarjeta blanca */
+        .text-gray-300 { color: #4b5563; /* Hacer el texto más oscuro para contraste */ }
+        .text-gray-400 { color: #6b7280; /* Hacer el texto más oscuro para contraste */ }
+        .border-gray-500 { border-color: #e5e7eb; } /* Borde más claro */
+        .bg-gray-600 { background-color: #e5e7eb; color: #4b5563; } /* Estado de conexión más visible */
+        .bg-green-700 { background-color: #10b981; } /* Mantener colores de estado de conexión fuertes */
+        .bg-red-700 { background-color: #ef4444; }
+        .bg-yellow-600 { background-color: #f59e0b; }
+        /* ---------------------------------------------------- */
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex items-center justify-center">
+
+    <div class="max-w-4xl w-full card p-6 sm:p-10 rounded-xl shadow-2xl">
+        <h1 class="text-3xl sm:text-4xl font-extrabold mb-2 text-center text-primary-color">
+            Reserva de Servicio - Taller
+        </h1>
+        
+        <div id="connection-status" class="text-center p-3 mb-6 rounded-lg font-semibold bg-gray-600">
+            Verificando conexión y configuración...
+        </div>
+
+        <p class="text-center text-gray-300 mb-8">
+            Agenda tu mantenimiento o garantía con 48 horas de anticipación.
+        </p>
+
+        <!-- Contenedor de Alertas -->
+        <div id="alert-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+        <form id="reservation-form" class="space-y-6">
+            <h2 class="text-xl font-semibold border-b border-gray-500 pb-2 text-primary-color">Datos de la Moto y el Cliente</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Se ha añadido la clase input-style para mayúsculas automáticas en JS -->
+                <input type="text" id="nombre" placeholder="NOMBRE COMPLETO *" class="input-style p-3 rounded-lg" required>
+                <input type="tel" id="telefono" placeholder="TELÉFONO (9 DÍGITOS) *" class="input-style p-3 rounded-lg" required pattern="[0-9]{9}" title="Debe tener 9 dígitos numéricos">
+                <input type="email" id="email" placeholder="CORREO ELECTRÓNICO (OPCIONAL)" class="input-style p-3 rounded-lg">
+                <input type="text" id="placa" placeholder="PLACA DE LA MOTOCICLETA *" class="input-style p-3 rounded-lg" required>
+                <input type="text" id="marca" placeholder="MARCA DE LA MOTOCICLETA *" class="input-style p-3 rounded-lg" required>
+                <input type="text" id="modelo" placeholder="MODELO DE LA MOTOCICLETA *" class="input-style p-3 rounded-lg" required>
+                <input type="number" id="kilometraje" placeholder="KILOMETRAJE (km) *" class="input-style p-3 rounded-lg" required min="1">
+            </div>
+
+            <h2 class="text-xl font-semibold border-b border-gray-500 pb-2 text-primary-color">Selección de Servicio</h2>
+
+            <div class="flex space-x-4">
+                <label class="flex items-center text-lg">
+                    <input type="radio" name="service-type" value="Mantenimiento" class="form-radio h-4 w-4 text-primary-color border-gray-300" checked>
+                    <span class="ml-2">Mantenimiento</span>
+                </label>
+                <label class="flex items-center text-lg">
+                    <input type="radio" name="service-type" value="Garantia" class="form-radio h-4 w-4 text-primary-color border-gray-300">
+                    <span class="ml-2">Garantía</span>
+                </label>
+            </div>
+
+            <div id="maintenance-selector" class="mt-4">
+                <select id="mantenimiento-tipo" class="input-style w-full p-3 rounded-lg">
+                    <option value="1°" data-duration="0.5">1° Mantenimiento (Básico)</option>
+                    <option value="2°" data-duration="0.5">2° Mantenimiento (Básico)</option>
+                    <option value="3°" data-duration="0.5">3° Mantenimiento (Básico)</option>
+                    <option value="4°" data-duration="3">4° Mantenimiento (General)</option>
+                    <option value="5°" data-duration="3">5° Mantenimiento (General)</option>
+                    <option value="6°" data-duration="3">6° Mantenimiento (General)</option>
+                    <option value="7°" data-duration="3">7° Mantenimiento (General)</option>
+                    <option value="8°" data-duration="3">8° Mantenimiento (General)</option>
+                </select>
+            </div>
+
+            <h2 class="text-xl font-semibold border-b border-gray-500 pb-2 text-primary-color">Fecha y Horario</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input type="date" id="fecha-cita" class="input-style p-3 rounded-lg" required>
+                <select id="mecanico-select" class="input-style p-3 rounded-lg" required>
+                    <option value="">Selecciona Mecánico</option>
+                </select>
+                <select id="hora-select" class="input-style p-3 rounded-lg" required disabled>
+                    <option value="">Selecciona Hora</option>
+                </select>
+            </div>
+            <p id="date-info" class="text-sm text-gray-400 mt-2 italic"></p>
+            <p id="availability-status" class="text-sm text-red-500 mt-2 font-bold"></p>
+
+
+            <textarea id="observaciones" placeholder="OBSERVACIONES Y DIAGNÓSTICO (OBLIGATORIO) *" rows="3" class="input-style w-full p-3 rounded-lg" required></textarea>
+
+            <button type="submit" class="btn-primary w-full p-4 text-xl font-bold rounded-lg shadow-lg">
+                Confirmar Reserva
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // =======================================================================================
+        // 🚨 URL DE TU DESPLIEGUE DE GOOGLE APPS SCRIPT (ACTUALIZADA)
+        // =======================================================================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwoz6z9x4wWIMM_8i_yrhY4x__x3HVVI_KEYtbpDVy0aWuWCb114Wfs4W_c1F9TOzrS/exec';
+        // =======================================================================================
+
+        // Referencias del DOM
+        const form = document.getElementById('reservation-form');
+        const alertContainer = document.getElementById('alert-container');
+        const connectionStatusDiv = document.getElementById('connection-status'); 
+        const serviceRadios = document.querySelectorAll('input[name="service-type"]');
+        const maintenanceSelector = document.getElementById('maintenance-selector');
+        const mantenimientoTipo = document.getElementById('mantenimiento-tipo');
+        const fechaCitaInput = document.getElementById('fecha-cita');
+        const mecanicoSelect = document.getElementById('mecanico-select');
+        const horaSelect = document.getElementById('hora-select');
+        const observacionesTextarea = document.getElementById('observaciones');
+        const availabilityStatus = document.getElementById('availability-status');
+        const dateInfo = document.getElementById('date-info');
+
+        // Variables de Estado
+        let config = {
+            advanceBookingHours: 48, 
+            guaranteeDay: 3, 
+            workingDays: [1, 2, 3, 4, 5, 6],
+            generalMaintenanceDuration: 3 
+        };
+        let mechanics = [];
+        let currentDuration = 0.5; 
+
+        // --- Utilidades de UI ---
+
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            const color = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            const icon = type === 'success' ? '&#10003;' : '&#9888;';
+            
+            alertDiv.className = `${color} text-white p-3 rounded-lg shadow-xl flex items-center transition-opacity duration-300`;
+            alertDiv.innerHTML = `<span class="mr-2 text-xl">${icon}</span><span>${message}</span>`;
+            alertContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.classList.add('opacity-0');
+                alertDiv.addEventListener('transitionend', () => alertDiv.remove());
+            }, 5000);
+        }
+        
+        function updateConnectionStatus(message, type) {
+            // Se usa el color de texto oscuro para los fondos claros en la nueva paleta
+            let colorClass = 'bg-gray-200 text-gray-800'; // Nuevo color claro
+            if (type === 'success') colorClass = 'bg-green-600 text-white';
+            else if (type === 'error') colorClass = 'bg-red-600 text-white';
+            else if (type === 'warning') colorClass = 'bg-yellow-500 text-gray-900';
+
+            connectionStatusDiv.className = `text-center p-3 mb-6 rounded-lg font-semibold ${colorClass}`;
+            connectionStatusDiv.textContent = message;
+        }
+
+        /**
+         * Configura los campos de texto para convertir automáticamente a mayúsculas.
+         */
+        function setupUppercaseInputs() {
+            const fieldsToUppercase = ['nombre', 'placa', 'marca', 'modelo', 'observaciones'];
+            
+            fieldsToUppercase.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', (e) => {
+                        // Forzar el valor a mayúsculas en cada pulsación de tecla
+                        e.target.value = e.target.value.toUpperCase();
+                    });
+                }
+            });
+        }
+        
+        /**
+         * Maneja la lógica de validación de fechas (mínimo 48h, día de garantía).
+         */
+        function validateDate(dateStr, serviceType) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const selectedDate = new Date(dateStr + 'T00:00:00'); 
+            const timeDiff = selectedDate.getTime() - today.getTime();
+            const hoursDiff = timeDiff / (1000 * 3600);
+
+            const minAdvanceHours = parseInt(config.advanceBookingHours) || 48;
+            const guaranteeDay = parseInt(config.guaranteeDay) || 3; 
+
+            if (hoursDiff < minAdvanceHours) {
+                return `Debe reservar con una anticipación mínima de ${minAdvanceHours} horas.`;
+            }
+
+            const dayOfWeek = selectedDate.getDay();
+            const isWorkingDay = (config.workingDays || [1, 2, 3, 4, 5, 6]).includes(dayOfWeek);
+            const isGuaranteeDay = dayOfWeek === guaranteeDay;
+
+            if (!isWorkingDay && !isGuaranteeDay) {
+                return 'Día no laboral. Solo trabajamos de Lunes a Sábado.';
+            }
+
+            if (serviceType === 'Garantia' && !isGuaranteeDay) {
+                return `El servicio de Garantía solo está disponible los Miércoles.`;
+            }
+            if (serviceType === 'Mantenimiento' && isGuaranteeDay) {
+                return `El día Miércoles está reservado exclusivamente para servicios de Garantía.`;
+            }
+
+            return null;
+        }
+
+
+        /**
+         * Carga la configuración inicial y los mecánicos.
+         */
+        async function loadInitialData() {
+            updateConnectionStatus('Verificando conexión y cargando datos...', 'warning');
+            
+            try {
+                const url = new URL(API_URL);
+                url.searchParams.append('action', 'getInitialData'); 
+
+                const response = await fetch(url.toString());
+                const data = await response.json();
+
+                if (data.status === 'ERROR') {
+                    const message = data.message || 'Error desconocido del Apps Script.';
+                    showAlert(`Error al cargar datos iniciales: ${message}`, 'error');
+                    updateConnectionStatus(`ERROR (Servidor): ${message}`, 'error');
+                    console.error("Apps Script Error:", message);
+                    // No hacer return aquí para poder ejecutar el resto del código y ver qué falla.
+                    return;
+                }
+
+                config = data.config || config; 
+                mechanics = data.mechanics || [];
+                
+                // Rellenar select de mecánicos
+                mecanicoSelect.innerHTML = '<option value="">Selecciona Mecánico</option>';
+                mechanics.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.ID;
+                    option.textContent = m.Nombre;
+                    mecanicoSelect.appendChild(option);
+                });
+
+                // Establecer fecha mínima
+                const minAdvanceHours = parseInt(config.advanceBookingHours) || 48;
+                const minDate = new Date();
+                minDate.setHours(minDate.getHours() + minAdvanceHours); 
+                fechaCitaInput.min = minDate.toISOString().split('T')[0];
+                
+                updateConnectionStatus('Conexión Exitosa. Configuración y Mecánicos cargados.', 'success');
+                console.log("Mecánicos recibidos (Debe ser una lista de objetos):", mechanics);
+                
+            } catch (error) {
+                console.error("Error de conexión al Apps Script:", error);
+                const message = 'Fallo de red. Revisa la URL de tu Apps Script o el despliegue.';
+                showAlert(message, 'error');
+                updateConnectionStatus(`ERROR (Red): ${message}`, 'error');
+            }
+        }
+        
+        /**
+         * Obtiene y muestra los slots disponibles.
+         */
+        async function getAndDisplaySlots() {
+            const fechaCita = fechaCitaInput.value;
+            const mecanicoId = mecanicoSelect.value;
+            const serviceType = document.querySelector('input[name="service-type"]:checked').value;
+
+            horaSelect.innerHTML = '<option value="">Cargando horas...</option>';
+            horaSelect.disabled = true;
+            availabilityStatus.textContent = '';
+            
+            if (!fechaCita || !mecanicoId) return;
+
+            const validationError = validateDate(fechaCita, serviceType);
+            if (validationError) {
+                availabilityStatus.textContent = validationError;
+                horaSelect.innerHTML = '<option value="">Selecciona Hora</option>';
+                return;
+            }
+
+            // Usar la configuración cargada
+            const generalDuration = parseFloat(config.generalMaintenanceDuration) || 3; 
+
+            // Determinar si es un mantenimiento 'General' (4° en adelante)
+            const isGeneralMaintenance = serviceType === 'Mantenimiento' && 
+                                         mantenimientoTipo.value && 
+                                         (parseInt(mantenimientoTipo.value.charAt(0)) >= 4);
+
+            
+            // Lógica para determinar currentDuration (ajustada para ser más explícita)
+            if (serviceType === 'Garantia') {
+                // Si el script de Apps Script usa 'guaranteeDuration' en config.
+                currentDuration = parseFloat(config.guaranteeDuration) || 1.5; 
+            } else if (isGeneralMaintenance) {
+                // Mantenimiento 4° en adelante
+                currentDuration = generalDuration;
+            } else {
+                // Mantenimiento 1°, 2°, 3°
+                currentDuration = parseFloat(config.basicMaintenanceDuration) || 0.5;
+            }
+            
+            dateInfo.textContent = `Duración estimada del servicio: ${currentDuration} horas.`;
+
+
+            try {
+                const url = new URL(API_URL);
+                url.searchParams.append('action', 'getAvailableSlots');
+                url.searchParams.append('date', fechaCita);
+                url.searchParams.append('mechanicId', mecanicoId);
+                url.searchParams.append('serviceType', serviceType);
+                url.searchParams.append('duration', currentDuration);
+
+                const response = await fetch(url.toString());
+                const data = await response.json();
+
+                if (data.status === 'ERROR') {
+                    availabilityStatus.textContent = `Error del servidor: ${data.message}`;
+                    // Enviar a consola el mensaje para facilitar el debug
+                    console.error("Error en getAvailableSlots:", data.message);
+                    return;
+                }
+                
+                const slots = data.slots || [];
+                horaSelect.innerHTML = '<option value="">Selecciona Hora</option>';
+                
+                if (slots.length > 0) {
+                    slots.forEach(slot => {
+                        const option = document.createElement('option');
+                        option.value = slot.time;
+                        option.textContent = `${slot.time} - ${slot.endTime}`;
+                        horaSelect.appendChild(option);
+                    });
+                    horaSelect.disabled = false;
+                    availabilityStatus.textContent = '';
+                } else {
+                    availabilityStatus.textContent = 'No hay horarios disponibles para esta selección.';
+                    horaSelect.disabled = true;
+                }
+
+            } catch (error) {
+                console.error("Error al obtener slots:", error);
+                showAlert('Fallo al obtener disponibilidad. Revise la consola.', 'error');
+                horaSelect.innerHTML = '<option value="">Selecciona Hora</option>';
+            }
+        }
+
+        /**
+         * Envía la reserva al Apps Script (POST).
+         */
+        async function sendReservation(formData) {
+            const button = form.querySelector('button[type="submit"]');
+            button.disabled = true;
+            button.textContent = 'Procesando Reserva...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors', 
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                // --- MECANISMO DE DIAGNÓSTICO AÑADIDO ---
+                const responseText = await response.text();
+                
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error("Error al parsear JSON (Apps Script devolvió texto):", e);
+                    // Si falla al parsear, significa que Apps Script devolvió algo que no es JSON (ej. HTML de error)
+                    showAlert('Error en el Apps Script (Devolvió formato incorrecto). Revise el registro de ejecución de doPost.', 'error');
+                    console.error("Respuesta cruda del Apps Script (NO JSON):", responseText);
+                    return;
+                }
+                // ----------------------------------------
+
+                if (data.status === 'SUCCESS') {
+                    showAlert('¡Reserva confirmada! Te contactaremos pronto para confirmar los detalles.');
+                    form.reset(); 
+                    horaSelect.innerHTML = '<option value="">Selecciona Hora</option>';
+                    horaSelect.disabled = true;
+                    availabilityStatus.textContent = '';
+                } else {
+                    showAlert(`Error al reservar: ${data.message}`, 'error');
+                }
+
+            } catch (error) {
+                // Este 'catch' solo se activa por fallas de red (Failed to fetch) o CORS
+                console.error("Error de conexión al reservar (Failed to fetch/CORS):", error);
+                showAlert('Error de red. El servidor no respondió. Revise la configuración de ACCESO de su despliegue (Debe ser "Cualquier persona").', 'error');
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Confirmar Reserva';
+            }
+        }
+
+        // --- Event Listeners y Lógica ---
+
+        serviceRadios.forEach(radio => radio.addEventListener('change', () => {
+            const serviceType = document.querySelector('input[name="service-type"]:checked').value;
+            maintenanceSelector.style.display = serviceType === 'Mantenimiento' ? 'block' : 'none';
+            getAndDisplaySlots();
+        }));
+
+        mantenimientoTipo.addEventListener('change', getAndDisplaySlots);
+        fechaCitaInput.addEventListener('change', getAndDisplaySlots);
+        mecanicoSelect.addEventListener('change', getAndDisplaySlots);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 1. Validaciones
+            if (document.getElementById('telefono').value.length !== 9) {
+                showAlert('El teléfono debe tener exactamente 9 dígitos.', 'error');
+                return;
+            }
+            const serviceType = document.querySelector('input[name="service-type"]:checked').value;
+            if (validateDate(fechaCitaInput.value, serviceType)) {
+                 showAlert(validateDate(fechaCitaInput.value, serviceType), 'error');
+                return;
+            }
+            
+            // 2. Recolección de datos
+            const selectedMechanic = mechanics.find(m => m.ID === mecanicoSelect.value);
+
+            const formData = {
+                action: 'createReservation',
+                // Los datos ya están en mayúsculas gracias a setupUppercaseInputs()
+                nombre: document.getElementById('nombre').value,
+                telefono: document.getElementById('telefono').value,
+                email: document.getElementById('email').value || 'N/A',
+                placa: document.getElementById('placa').value,
+                marca: document.getElementById('marca').value,
+                modelo: document.getElementById('modelo').value,
+                kilometraje: document.getElementById('kilometraje').value,
+                tipoServicio: serviceType,
+                categoriaServicio: serviceType === 'Mantenimiento' ? mantenimientoTipo.value : 'Garantía',
+                descripcionServicio: serviceType === 'Mantenimiento' ? `MANTENIMIENTO ${mantenimientoTipo.value}` : 'DIAGNÓSTICO DE GARANTÍA',
+                fechaCita: fechaCitaInput.value,
+                hora: horaSelect.value,
+                mecanicoId: mecanicoSelect.value,
+                mecanico: selectedMechanic ? selectedMechanic.Nombre : 'ERROR',
+                observaciones: observacionesTextarea.value,
+                duracion: currentDuration
+            };
+            
+            await sendReservation(formData);
+        });
+
+        // Cargar datos al inicio y configurar mayúsculas
+        loadInitialData();
+        setupUppercaseInputs();
+        
+        // Función de debug global para Rodolfo
+        window.mechanics = mechanics; 
+        
+    </script>
+</body>
+</html>
